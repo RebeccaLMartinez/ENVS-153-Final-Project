@@ -1,0 +1,32 @@
+group,locationN,locationW,date,week,max_temp_f,min_temp_f,precip_in,foam_count,insect_species,insect_common_name,insect_count,notes
+,,,,,,,,,,,,
+19,34°25’06.2” N,119°51’52.9”W,4/6/2026,1,71,60,0,11,complex clastoptera lineatocollis,spittlebug,2,"flying, gnat-like insects observed but difficult to count - recorded as 'unknown'"
+19,34°25’06.2” N,119°51’52.9”W,4/6/2026,1,71,60,0,11,coccinella septempunctata,black-spotted lady bug,2,"total foam counted, not by quadrant this week"
+19,34°25’06.2” N,119°51’52.9”W,4/6/2026,1,71,60,0,11,allograpta obliqua,oblique streaktail (hoverfly),1,
+19,34°25’06.2” N,119°51’52.9”W,4/6/2026,1,71,60,0,11,unknown,unknown,8,
+,,,,,,,,,,,,
+19,34°25’06.2” N,119°51’52.9”W,4/13/2026,2,66,49,0,34,complex clastoptera lineatocollis,spittlebug,3,"visibly seen, not counting spittlebug residng inside foam"
+19,34°25’06.2” N,119°51’52.9”W,4/13/2026,2,66,49,0,34,calyptrate,flies,1,"total foam counted, not by quadrant this week"
+19,34°25’06.2” N,119°51’52.9”W,4/13/2026,2,66,49,0,34,linepithema humile,argentine ant,1,
+19,34°25’06.2” N,119°51’52.9”W,4/13/2026,2,66,49,0,34,unknown,unknown,2,"unknown beetles, listed only as ""insects"" using seek - unable to obtain a good angle for photo"
+,,,,,,,,,,,,
+19,34°25’06.2” N,119°51’52.9”W,4/20/2026,3,65,52,0,41,complex clastoptera lineatocollis,spittlebug,2,"visibly seen, not counting spittlebug residng inside foam"
+19,34°25’06.2” N,119°51’52.9”W,4/20/2026,3,65,52,0,41,chrysomelidae,leaf beetle,1,"total foam counted, not by quadrant this week"
+19,34°25’06.2” N,119°51’52.9”W,4/20/2026,3,65,52,0,41,linepithema humile,argentine ant,6,
+19,34°25’06.2” N,119°51’52.9”W,4/20/2026,3,65,52,0,41,calyptrate,flies,1,
+,,,,,,,,41,unknown,unknown,1,
+,,,,,,,,,,,,
+19,34°25’06.2” N,119°51’52.9”W,4/27/2026,4,68,46,0,23,complex clastoptera lineatocollis,spittlebug,0,"visibly seen, not counting spittlebug residng inside foam"
+19,34°25’06.2” N,119°51’52.9”W,4/27/2026,4,68,46,0,23,calyptrate,Knats,12,A lot of knats stuck on foam this week
+19,34°25’06.2” N,119°51’52.9”W,4/27/2026,4,68,46,0,23,linepithema humile,leaf beetle,4,One beetle appeared to be laying an egg or performing some unknown action on a leaf
+19,34°25’06.2” N,119°51’52.9”W,4/27/2026,4,68,46,0,23,unknown,unknown,0,"total foam counted, not by quadrant this week"
+,,,,,,,,,,,,
+19,34°25’06.2” N,119°51’52.9”W,5/4/2026,5,74,52,0,7,complex clastoptera lineatocollis,spittlebug,0,"total foam counted, not by quadrant this week"
+19,34°25’06.2” N,119°51’52.9”W,5/4/2026,5,74,52,0,7,calyptrate,flies,9,"not many foam spots on coyote brush this week, or insects"
+19,34°25’06.2” N,119°51’52.9”W,5/4/2026,5,74,52,0,7,linepithema humile,argentine ant,0,
+19,34°25’06.2” N,119°51’52.9”W,5/4/2026,5,74,52,0,7,unknown,unknown,0,
+,,,,,,,,,,,,
+19,34°25’06.2” N,119°51’52.9”W,5/11/2026,6,,,,,complex clastoptera lineatocollis,spittlebug,,
+,,,5/11/2026,,,,,,calyptrate,Knats,,
+,,,5/11/2026,,,,,,linepithema humile,leaf beetle,,
+,,,5/11/2026,,,,,,unknown,unknown,,
