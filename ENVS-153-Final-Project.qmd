@@ -1,0 +1,66 @@
+---
+title: "ENVS 153 Final Project"
+date: "12 May 2026"
+format:
+  pdf: 
+    fig-width: 10
+    fig-height: 8
+    include-in-header:
+      text: |
+        \usepackage{fvextra}
+        \DefineVerbatimEnvironment{Highlighting}{Verbatim}{breaklines,breakanywhere,commandchars=\\\{\}}
+editor: source
+execute: 
+  message: false
+  warning: false
+---
+
+# 1. Setup
+
+## Packages
+
+```{r packages}
+
+# general use
+library(tidyverse)
+library(janitor) # clean column names
+library(lubridate) # clean date
+
+# file organization
+library(here)
+
+# data visualization
+library(naniar) # copied from week-04_class
+library(patchwork)  # copied from week-04_class
+library(viridis) # color palette
+
+
+```
+
+
+## Data
+
+```{r data}
+
+spittlebug <- read_csv(here("data", "env153_project_data_sheet.csv"))
+
+```
+
+## 2. Cleaning
+
+```{r}
+
+# create new object from weather
+spittle_clean <- spittlebug |> 
+  # clean column names  
+  clean_names() |> 
+  # change date column to standard format
+  mutate(date = mdy(date)) |>
+  # extract month and year from date column
+  mutate(month = month(date),
+         year = year(date)) 
+
+```
+
+
+
