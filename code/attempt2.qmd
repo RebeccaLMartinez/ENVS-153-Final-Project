@@ -257,9 +257,8 @@ ggplot(weekly_summary, aes(x = week, y = foam_count)) +
   labs(
     x = "Sampling week",
     y = "Foam count",
-    title = "Initial exploration: foam count over time",
-    subtitle = "Foam count increased early in the study and then declined"
-  )
+    title = "Initial exploration: foam count over time"
+      )
 
 ```
 
@@ -275,8 +274,8 @@ ggplot(weekly_summary, aes(x = week, y = total_insects)) +
   labs(
     x = "Sampling week",
     y = "Total insect abundance",
-    title = "Initial exploration: insect abundance over time",
-    subtitle = "Total insect abundance varied across weeks and peaked in the final week"
+    title = "Initial exploration: insect abundance over time"
+   
   )
 
 ```
@@ -294,8 +293,7 @@ ggplot(weekly_summary, aes(x = week, y = insect_richness)) +
   labs(
     x = "Sampling week",
     y = "Insect taxon richness",
-    title = "Initial exploration: insect taxon richness over time",
-    subtitle = "Richness was highest earlier in the study and lower in later weeks"
+    title = "Initial exploration: insect taxon richness over time"
   )
 
 ```
@@ -317,9 +315,8 @@ ggplot(weekly_summary, aes(x = foam_count, y = total_insects)) +
   labs(
     x = "Foam count",
     y = "Total insect abundance",
-    title = "Initial exploration: foam count vs. insect abundance",
-    subtitle = "This checks whether weeks with more foam also had more insects"
-  )
+    title = "Initial exploration: foam count vs. insect abundance"
+    )
 
 ```
 
@@ -341,8 +338,7 @@ ggplot(weekly_summary, aes(x = foam_count, y = insect_richness)) +
   labs(
     x = "Foam count",
     y = "Insect taxon richness",
-    title = "Initial exploration: foam count vs. insect richness",
-    subtitle = "This checks whether foam count is associated with the number of insect taxa observed"
+    title = "Initial exploration: foam count vs. insect richness"
   )
 
 ```
@@ -381,8 +377,7 @@ ggplot(temp_long, aes(x = temperature_f, y = foam_count)) +
   labs(
     x = "Temperature (°F)",
     y = "Foam count",
-    title = "Initial exploration: temperature vs. foam count",
-    subtitle = "Minimum and maximum temperature were checked separately"
+    title = "Initial exploration: temperature vs. foam count"
   )
 
 ```
@@ -405,8 +400,7 @@ ggplot(temp_long, aes(x = temperature_f, y = total_insects)) +
   labs(
     x = "Temperature (°F)",
     y = "Total insect abundance",
-    title = "Initial exploration: temperature vs. insect abundance",
-    subtitle = "This checks whether warmer weeks had more insects"
+    title = "Initial exploration: temperature vs. insect abundance"
   )
 
 ```
@@ -467,8 +461,7 @@ fig_1 <- ggplot(weekly_long, aes(x = date, y = value)) +
   labs(
     x = "Sampling date",
     y = NULL,
-    title = "Weekly changes in foam, insects, and temperature",
-    subtitle = "Foam count peaked in week 3, while total insect abundance peaked in week 6; n = 6 weeks"
+    title = "Weekly changes in foam, insects, and temperature"
   )
 
 fig_1
