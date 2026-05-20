@@ -1,0 +1,694 @@
+---
+title: "ENVS 153 Project Data Analysis"
+author: "Nastasha Griffin, Rebecca Martinez, Hannah Tuttle"
+date: today
+format:
+  pdf: 
+    fig-width: 10
+    fig-height: 8
+    include-in-header:
+      text: |
+        \usepackage{fvextra}
+        \DefineVerbatimEnvironment{Highlighting}{Verbatim}{breaklines,breakanywhere,commandchars=\\\{\}}
+editor: source
+execute: 
+  echo: false
+  message: false
+  warning: false
+---
+
+```{r setup}
+
+# load packages
+library(tidyverse)
+library(janitor)
+library(lubridate)
+library(vegan)
+library(here)
+library(patchwork)
+
+# create a figures folder
+dir.create(here("figures"))
+
+# set plot theme
+theme_set(
+  theme_minimal(base_size = 12) +
+    theme(
+      plot.title = element_text(face = "bold"),
+      plot.subtitle = element_text(size = 10),
+      panel.grid.minor = element_blank(),
+      legend.position = "bottom"
+    )
+)
+
+```
+
+```{r data}
+
+# read in raw data
+spittlebug1 <- read_csv(here("data", "env153_project_data_sheet.csv")) |> 
+  clean_names()
+
+# clean raw data
+bugs_clean <- spittlebug1 |>
+  remove_empty("rows") |>
+  fill(
+    group,
+    location_n,
+    location_w,
+    date,
+    week,
+    max_temp_f,
+    min_temp_f,
+    precip_in,
+    foam_count,
+    .direction = "down"
+  ) |>
+  mutate(
+    date = mdy(date),
+    week = as.numeric(week),
+    max_temp_f = as.numeric(max_temp_f),
+    min_temp_f = as.numeric(min_temp_f),
+    precip_in = as.numeric(precip_in),
+    foam_count = as.numeric(foam_count),
+    insect_count = as.numeric(insect_count),
+    insect_species = str_to_lower(str_squish(insect_species)),
+    insect_common_name = str_to_lower(str_squish(insect_common_name))
+  ) |>
+  mutate(
+    week = if_else(date == mdy("5/11/2026"), 6, week),
+    max_temp_f = if_else(date == mdy("5/11/2026"), 63, max_temp_f),
+    min_temp_f = if_else(date == mdy("5/11/2026"), 53, min_temp_f),
+    precip_in = if_else(date == mdy("5/11/2026"), 0, precip_in),
+    foam_count = if_else(date == mdy("5/11/2026"), 5, foam_count)
+  ) |>
+  mutate(
+    insect_count = case_when(
+      date == mdy("5/11/2026") & insect_species == "complex clastoptera lineatocollis" ~ 2,
+      date == mdy("5/11/2026") & insect_species == "calyptrate" ~ 5,
+      date == mdy("5/11/2026") & insect_species == "linepithema humile" ~ 1,
+      date == mdy("5/11/2026") & insect_species == "unknown" ~ 11,
+      TRUE ~ insect_count
+    )
+  ) |>
+  mutate(
+    insect_taxon = case_when(
+      insect_species == "complex clastoptera lineatocollis" ~ "clastoptera lineatocollis complex",
+      insect_species == "coccinella septempunctata" ~ "coccinella septempunctata",
+      insect_species == "allograpta obliqua" ~ "allograpta obliqua",
+      insect_species == "linepithema humile" ~ "linepithema humile",
+      insect_species == "calyptrate" ~ "calyptrate flies",
+      insect_species == "chrysomelidae" ~ "chrysomelidae",
+      insect_species == "unknown" ~ "unknown",
+      TRUE ~ insect_species
+    )
+  )
+
+```
+
+```{r data-summaries}
+
+# create weekly summary table
+weekly_summary <- bugs_clean |>
+  filter(!is.na(insect_taxon)) |>
+  group_by(week, date) |>
+  summarize(
+    max_temp_f = first(max_temp_f),
+    min_temp_f = first(min_temp_f),
+    precip_in = first(precip_in),
+    foam_count = first(foam_count),
+    total_insects = sum(insect_count, na.rm = TRUE),
+    insect_richness = sum(insect_count > 0, na.rm = TRUE),
+    .groups = "drop"
+  ) |>
+  mutate(
+    temp_range_f = max_temp_f - min_temp_f,
+    week_label = paste0("Week ", week),
+    date_label = format(date, "%b %d")
+  )
+
+# create taxon summary table
+taxon_summary <- bugs_clean |>
+  filter(!is.na(insect_taxon)) |>
+  group_by(insect_taxon) |>
+  summarize(
+    total_count = sum(insect_count, na.rm = TRUE),
+    weeks_observed = n_distinct(week[insect_count > 0]),
+    .groups = "drop"
+  ) |>
+  arrange(desc(total_count))
+
+# create weekly taxon table
+taxon_weekly <- bugs_clean |>
+  filter(!is.na(insect_taxon)) |>
+  group_by(week, date, insect_taxon) |>
+  summarize(
+    insect_count = sum(insect_count, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# create summary statistics
+weekly_stats <- weekly_summary |>
+  summarize(
+    n_weeks = n(),
+    foam_min = min(foam_count, na.rm = TRUE),
+    foam_max = max(foam_count, na.rm = TRUE),
+    foam_mean = mean(foam_count, na.rm = TRUE),
+    foam_sd = sd(foam_count, na.rm = TRUE),
+    total_insects_min = min(total_insects, na.rm = TRUE),
+    total_insects_max = max(total_insects, na.rm = TRUE),
+    total_insects_mean = mean(total_insects, na.rm = TRUE),
+    total_insects_sd = sd(total_insects, na.rm = TRUE),
+    richness_min = min(insect_richness, na.rm = TRUE),
+    richness_max = max(insect_richness, na.rm = TRUE),
+    richness_mean = mean(insect_richness, na.rm = TRUE),
+    richness_sd = sd(insect_richness, na.rm = TRUE),
+    min_temp_mean = mean(min_temp_f, na.rm = TRUE),
+    max_temp_mean = mean(max_temp_f, na.rm = TRUE)
+  )
+
+```
+
+```{r statistics}
+
+# run Spearman correlations for preliminary analyses
+cor_foam_abundance <- cor.test(
+  weekly_summary$foam_count,
+  weekly_summary$total_insects,
+  method = "spearman",
+  exact = FALSE
+)
+
+cor_foam_richness <- cor.test(
+  weekly_summary$foam_count,
+  weekly_summary$insect_richness,
+  method = "spearman",
+  exact = FALSE
+)
+
+cor_min_temp_foam <- cor.test(
+  weekly_summary$min_temp_f,
+  weekly_summary$foam_count,
+  method = "spearman",
+  exact = FALSE
+)
+
+cor_min_temp_abundance <- cor.test(
+  weekly_summary$min_temp_f,
+  weekly_summary$total_insects,
+  method = "spearman",
+  exact = FALSE
+)
+
+# create clean correlation table for plot subtitles and results paragraphs
+correlation_results <- tibble(
+  hypothesis = c("H1", "H2", "H3a", "H3b"),
+  relationship = c(
+    "Foam count vs. total insect abundance",
+    "Foam count vs. insect taxon richness",
+    "Minimum temperature vs. foam count",
+    "Minimum temperature vs. total insect abundance"
+  ),
+  spearman_rho = c(
+    cor_foam_abundance$estimate,
+    cor_foam_richness$estimate,
+    cor_min_temp_foam$estimate,
+    cor_min_temp_abundance$estimate
+  ),
+  p_value = c(
+    cor_foam_abundance$p.value,
+    cor_foam_richness$p.value,
+    cor_min_temp_foam$p.value,
+    cor_min_temp_abundance$p.value
+  )
+) |>
+  mutate(
+    spearman_rho = round(spearman_rho, 2),
+    p_value = round(p_value, 3)
+  )
+
+```
+
+## Project focus
+
+This preliminary analysis examines weekly patterns in spittlebug foam count, insect abundance, insect taxon richness, and temperature on coyote brush (*Baccharis pilularis*). Because not all insects were identified to species level, we use the term **insect taxon richness** rather than strict species richness.
+
+The analysis is organized around three hypotheses:
+
+1. Weeks with higher spittlebug foam counts will have higher total insect abundance.
+2. Weeks with higher spittlebug foam counts will have higher insect taxon richness.
+3. Warmer weeks will have higher foam counts and/or higher total insect abundance.
+
+Because the dataset currently includes only six weekly observations, these results should be interpreted as preliminary patterns rather than strong statistical evidence.
+
+# Initial exploratory visuals
+
+These first figures show the process of exploring the data before choosing the four main preliminary figures.
+
+## Initial visual 1: foam count over time
+
+```{r initial-foam-over-time}
+
+ggplot(weekly_summary, aes(x = week, y = foam_count)) +
+  geom_line(linewidth = 0.8) +
+  geom_point(size = 3) +
+  scale_x_continuous(breaks = weekly_summary$week) +
+  coord_cartesian(ylim = c(0, NA)) +
+  labs(
+    x = "Sampling week",
+    y = "Foam count",
+    title = "Initial exploration: foam count over time",
+    subtitle = "Foam count increased early in the study and then declined"
+  )
+
+```
+
+## Initial visual 2: insect abundance over time
+
+```{r initial-abundance-over-time}
+
+ggplot(weekly_summary, aes(x = week, y = total_insects)) +
+  geom_line(linewidth = 0.8) +
+  geom_point(size = 3) +
+  scale_x_continuous(breaks = weekly_summary$week) +
+  coord_cartesian(ylim = c(0, NA)) +
+  labs(
+    x = "Sampling week",
+    y = "Total insect abundance",
+    title = "Initial exploration: insect abundance over time",
+    subtitle = "Total insect abundance varied across weeks and peaked in the final week"
+  )
+
+```
+
+## Initial visual 3: insect richness over time
+
+```{r initial-richness-over-time}
+
+ggplot(weekly_summary, aes(x = week, y = insect_richness)) +
+  geom_line(linewidth = 0.8) +
+  geom_point(size = 3) +
+  scale_x_continuous(breaks = weekly_summary$week) +
+  scale_y_continuous(breaks = 0:6) +
+  coord_cartesian(ylim = c(0, NA)) +
+  labs(
+    x = "Sampling week",
+    y = "Insect taxon richness",
+    title = "Initial exploration: insect taxon richness over time",
+    subtitle = "Richness was highest earlier in the study and lower in later weeks"
+  )
+
+```
+
+## Initial visual 4: foam count vs. insect abundance
+
+```{r initial-foam-vs-abundance}
+
+ggplot(weekly_summary, aes(x = foam_count, y = total_insects)) +
+  geom_point(size = 3) +
+  geom_smooth(method = "lm", se = FALSE, linewidth = 0.8) +
+  geom_text(
+    aes(label = week_label),
+    nudge_y = 0.7,
+    size = 3,
+    check_overlap = TRUE
+  ) +
+  coord_cartesian(ylim = c(0, NA)) +
+  labs(
+    x = "Foam count",
+    y = "Total insect abundance",
+    title = "Initial exploration: foam count vs. insect abundance",
+    subtitle = "This checks whether weeks with more foam also had more insects"
+  )
+
+```
+
+## Initial visual 5: foam count vs. insect richness
+
+```{r initial-foam-vs-richness}
+
+ggplot(weekly_summary, aes(x = foam_count, y = insect_richness)) +
+  geom_point(size = 3) +
+  geom_smooth(method = "lm", se = FALSE, linewidth = 0.8) +
+  geom_text(
+    aes(label = week_label),
+    nudge_y = 0.12,
+    size = 3,
+    check_overlap = TRUE
+  ) +
+  scale_y_continuous(breaks = 0:6) +
+  coord_cartesian(ylim = c(0, NA)) +
+  labs(
+    x = "Foam count",
+    y = "Insect taxon richness",
+    title = "Initial exploration: foam count vs. insect richness",
+    subtitle = "This checks whether foam count is associated with the number of insect taxa observed"
+  )
+
+```
+
+## Initial visual 6: temperature vs. foam count
+
+```{r initial-temperature-vs-foam}
+
+# put minimum and maximum temperature into long format
+temp_long <- weekly_summary |>
+  select(week, week_label, date, foam_count, total_insects, min_temp_f, max_temp_f) |>
+  pivot_longer(
+    cols = c(min_temp_f, max_temp_f),
+    names_to = "temperature_type",
+    values_to = "temperature_f"
+  ) |>
+  mutate(
+    temperature_type = case_when(
+      temperature_type == "min_temp_f" ~ "Minimum temperature",
+      temperature_type == "max_temp_f" ~ "Maximum temperature",
+      TRUE ~ temperature_type
+    )
+  )
+
+ggplot(temp_long, aes(x = temperature_f, y = foam_count)) +
+  geom_point(size = 3) +
+  geom_smooth(method = "lm", se = FALSE, linewidth = 0.8) +
+  geom_text(
+    aes(label = week_label),
+    nudge_y = 0.8,
+    size = 3,
+    check_overlap = TRUE
+  ) +
+  facet_wrap(~ temperature_type, scales = "free_x") +
+  coord_cartesian(ylim = c(0, NA)) +
+  labs(
+    x = "Temperature (°F)",
+    y = "Foam count",
+    title = "Initial exploration: temperature vs. foam count",
+    subtitle = "Minimum and maximum temperature were checked separately"
+  )
+
+```
+
+## Initial visual 7: temperature vs. insect abundance
+
+```{r initial-temperature-vs-abundance}
+
+ggplot(temp_long, aes(x = temperature_f, y = total_insects)) +
+  geom_point(size = 3) +
+  geom_smooth(method = "lm", se = FALSE, linewidth = 0.8) +
+  geom_text(
+    aes(label = week_label),
+    nudge_y = 0.7,
+    size = 3,
+    check_overlap = TRUE
+  ) +
+  facet_wrap(~ temperature_type, scales = "free_x") +
+  coord_cartesian(ylim = c(0, NA)) +
+  labs(
+    x = "Temperature (°F)",
+    y = "Total insect abundance",
+    title = "Initial exploration: temperature vs. insect abundance",
+    subtitle = "This checks whether warmer weeks had more insects"
+  )
+
+```
+
+# Four preliminary figures
+
+After the initial exploration, the following figures focus more directly on the project hypotheses and meet the main figure requirements.
+
+## Figure 1. Weekly changes over time
+
+```{r fig-1-timeseries, fig.cap="Figure 1. Weekly changes in spittlebug foam count, total insect abundance, insect taxon richness, and minimum temperature from April 6 to May 11, 2026. Each point represents one weekly observation, and lines connect observations across the six-week sampling period. Foam count is the number of observed spittlebug foam spots per week, total insect abundance is the total number of insects counted per week, and insect taxon richness is the number of observed insect taxa with counts greater than zero. This figure shows how the main response variables changed over time before testing relationships between variables."}
+
+# make long version of weekly summary for timeseries plots
+weekly_long <- weekly_summary |>
+  select(
+    week,
+    date,
+    foam_count,
+    total_insects,
+    insect_richness,
+    min_temp_f
+  ) |>
+  pivot_longer(
+    cols = c(
+      foam_count,
+      total_insects,
+      insect_richness,
+      min_temp_f
+    ),
+    names_to = "variable",
+    values_to = "value"
+  ) |>
+  mutate(
+    variable = case_when(
+      variable == "foam_count" ~ "Foam count",
+      variable == "total_insects" ~ "Total insect abundance",
+      variable == "insect_richness" ~ "Insect taxon richness",
+      variable == "min_temp_f" ~ "Minimum temperature (°F)",
+      TRUE ~ variable
+    ),
+    variable = factor(
+      variable,
+      levels = c(
+        "Foam count",
+        "Total insect abundance",
+        "Insect taxon richness",
+        "Minimum temperature (°F)"
+      )
+    )
+  )
+
+# create figure 1
+fig_1 <- ggplot(weekly_long, aes(x = date, y = value)) +
+  geom_line(linewidth = 0.8) +
+  geom_point(size = 2.8) +
+  facet_wrap(~ variable, scales = "free_y", ncol = 1) +
+  scale_x_date(date_labels = "%b %d") +
+  labs(
+    x = "Sampling date",
+    y = NULL,
+    title = "Weekly changes in foam, insects, and temperature",
+    subtitle = "Foam count peaked in week 3, while total insect abundance peaked in week 6; n = 6 weeks"
+  )
+
+fig_1
+
+# save figure
+ggsave(
+  filename = here("figures", "figure_1_weekly_timeseries.jpg"),
+  plot = fig_1,
+  width = 7,
+  height = 9,
+  units = "in",
+  dpi = 300
+)
+
+```
+
+**Results paragraph for Figure 1.**  
+We expected foam count, insect abundance, and insect taxon richness to show similar weekly patterns if spittlebug foam was associated with greater insect activity. Foam count increased from week 1 to week 3, then declined through weeks 4 to 6. Total insect abundance did not follow the same pattern and was highest in the final week, when foam count was lowest. Insect taxon richness was highest early in the study and generally declined by the final weeks. Minimum temperature varied across the study period but did not show the same pattern as foam count or total insect abundance. These results do not strongly support the idea that foam count and total insect abundance changed together over time. However, the study period was short, with only six weekly observations, so these patterns should be interpreted cautiously. Differences in weather, observation time, insect detectability, and identification uncertainty may also influence the observed trends.
+
+## Figure 2. Foam count and total insect abundance
+
+```{r fig-2-foam-abundance, fig.cap="Figure 2. Relationship between spittlebug foam count and total insect abundance across six weekly observations from April 6 to May 11, 2026. Foam count is the weekly number of observed spittlebug foam spots, and total insect abundance is the total number of insects counted that week. Each point represents one sampling week, labeled by week number. The line shows a linear trend with a 95% confidence interval. Spearman correlation was used to evaluate whether foam count and total insect abundance tended to change together."}
+
+# create figure 2
+fig_2 <- ggplot(weekly_summary, aes(x = foam_count, y = total_insects)) +
+  geom_point(size = 3) +
+  geom_smooth(method = "lm", se = TRUE, linewidth = 0.8) +
+  geom_text(
+    aes(label = week_label),
+    nudge_y = 0.7,
+    size = 3,
+    check_overlap = TRUE
+  ) +
+  coord_cartesian(ylim = c(0, NA)) +
+  labs(
+    x = "Foam count",
+    y = "Total insect abundance",
+    title = "Foam count vs. total insect abundance",
+    subtitle = paste0(
+      "Negative preliminary relationship; Spearman rho = ",
+      correlation_results$spearman_rho[correlation_results$hypothesis == "H1"],
+      ", p = ",
+      correlation_results$p_value[correlation_results$hypothesis == "H1"],
+      "; n = 6 weeks"
+    )
+  )
+
+fig_2
+
+# save figure
+ggsave(
+  filename = here("figures", "figure_2_foam_vs_abundance.jpg"),
+  plot = fig_2,
+  width = 7,
+  height = 5,
+  units = "in",
+  dpi = 300
+)
+
+```
+
+**Results paragraph for Figure 2.**  
+We predicted that weeks with higher spittlebug foam counts would have higher total insect abundance because foam may provide structure, moisture, or other microhabitat conditions that could attract or support arthropods. The observed pattern did not clearly support this hypothesis. Instead, the relationship between foam count and total insect abundance was negative in the preliminary analysis. The Spearman correlation was `r correlation_results$spearman_rho[correlation_results$hypothesis == "H1"]`, with a p-value of `r correlation_results$p_value[correlation_results$hypothesis == "H1"]`, suggesting weak evidence for a relationship. This means that weeks with more foam did not necessarily have more observed insects. The result may partly reflect the small sample size, since only six weekly observations were available. It may also reflect differences in insect detectability, weekly observation conditions, or the fact that some insects were counted on or near the plant but may not have been directly responding to foam. Overall, these preliminary results do not strongly support the hypothesis that higher foam counts are associated with higher total insect abundance.
+
+## Figure 3. Foam count and insect taxon richness
+
+```{r fig-3-foam-richness, fig.cap="Figure 3. Relationship between spittlebug foam count and insect taxon richness across six weekly observations from April 6 to May 11, 2026. Foam count is the weekly number of observed spittlebug foam spots, and insect taxon richness is the number of observed insect taxa with counts greater than zero. Each point represents one sampling week, labeled by week number. The line shows a linear trend with a 95% confidence interval. Spearman correlation was used to assess whether foam count and richness tended to change together."}
+
+# create figure 3
+fig_3 <- ggplot(weekly_summary, aes(x = foam_count, y = insect_richness)) +
+  geom_point(size = 3) +
+  geom_smooth(method = "lm", se = TRUE, linewidth = 0.8) +
+  geom_text(
+    aes(label = week_label),
+    nudge_y = 0.12,
+    size = 3,
+    check_overlap = TRUE
+  ) +
+  scale_y_continuous(breaks = 0:6) +
+  coord_cartesian(ylim = c(0, NA)) +
+  labs(
+    x = "Foam count",
+    y = "Insect taxon richness",
+    title = "Foam count vs. insect taxon richness",
+    subtitle = paste0(
+      "Positive preliminary relationship; Spearman rho = ",
+      correlation_results$spearman_rho[correlation_results$hypothesis == "H2"],
+      ", p = ",
+      correlation_results$p_value[correlation_results$hypothesis == "H2"],
+      "; n = 6 weeks"
+    )
+  )
+
+fig_3
+
+# save figure
+ggsave(
+  filename = here("figures", "figure_3_foam_vs_richness.jpg"),
+  plot = fig_3,
+  width = 7,
+  height = 5,
+  units = "in",
+  dpi = 300
+)
+
+```
+
+**Results paragraph for Figure 3.**  
+We predicted that weeks with higher foam counts would also have higher insect taxon richness. This prediction was based on the idea that foam or the conditions associated with foam could create a microhabitat that supports more types of insects. The observed pattern showed a positive relationship between foam count and insect taxon richness. The Spearman correlation was `r correlation_results$spearman_rho[correlation_results$hypothesis == "H2"]`, with a p-value of `r correlation_results$p_value[correlation_results$hypothesis == "H2"]`. This suggests that weeks with more foam tended to have more observed insect taxa, but the relationship was not statistically strong with the current dataset. The result gives some preliminary support for the hypothesis, but it should be interpreted carefully because richness was based on a small number of weekly observations and some insect identifications were only resolved to broad categories such as “unknown” or “calyptrate flies.” Sampling effort, observer differences, and insect movement could also affect richness estimates. Overall, the pattern is interesting but not strong enough to make a firm conclusion.
+
+## Figure 4. Temperature relationships with foam and insects
+
+```{r fig-4-temperature, fig.cap="Figure 4. Relationships between minimum weekly temperature, spittlebug foam count, and total insect abundance across six weekly observations from April 6 to May 11, 2026. Minimum temperature is shown in degrees Fahrenheit. Foam count is the weekly number of observed spittlebug foam spots, and total insect abundance is the total number of insects counted that week. Each point represents one sampling week, labeled by week number. Lines show linear trends with 95% confidence intervals. Spearman correlations were used to evaluate whether minimum temperature was associated with foam count or insect abundance."}
+
+# minimum temperature vs foam count
+fig_4a <- ggplot(weekly_summary, aes(x = min_temp_f, y = foam_count)) +
+  geom_point(size = 3) +
+  geom_smooth(method = "lm", se = TRUE, linewidth = 0.8) +
+  geom_text(
+    aes(label = week_label),
+    nudge_y = 1,
+    size = 3,
+    check_overlap = TRUE
+  ) +
+  coord_cartesian(ylim = c(0, NA)) +
+  labs(
+    x = "Minimum temperature (°F)",
+    y = "Foam count",
+    title = "Minimum temperature vs. foam count",
+    subtitle = paste0(
+      "Spearman rho = ",
+      correlation_results$spearman_rho[correlation_results$hypothesis == "H3a"],
+      ", p = ",
+      correlation_results$p_value[correlation_results$hypothesis == "H3a"]
+    )
+  )
+
+# minimum temperature vs total insect abundance
+fig_4b <- ggplot(weekly_summary, aes(x = min_temp_f, y = total_insects)) +
+  geom_point(size = 3) +
+  geom_smooth(method = "lm", se = TRUE, linewidth = 0.8) +
+  geom_text(
+    aes(label = week_label),
+    nudge_y = 0.7,
+    size = 3,
+    check_overlap = TRUE
+  ) +
+  coord_cartesian(ylim = c(0, NA)) +
+  labs(
+    x = "Minimum temperature (°F)",
+    y = "Total insect abundance",
+    title = "Minimum temperature vs. insect abundance",
+    subtitle = paste0(
+      "Spearman rho = ",
+      correlation_results$spearman_rho[correlation_results$hypothesis == "H3b"],
+      ", p = ",
+      correlation_results$p_value[correlation_results$hypothesis == "H3b"]
+    )
+  )
+
+# combine both temperature plots
+fig_4 <- fig_4a + fig_4b +
+  plot_annotation(
+    title = "Temperature relationships with foam and insect abundance",
+    subtitle = "Minimum temperature did not show a strong relationship with foam count or total insect abundance; n = 6 weeks"
+  )
+
+fig_4
+
+# save figure
+ggsave(
+  filename = here("figures", "figure_4_temperature_relationships.jpg"),
+  plot = fig_4,
+  width = 10,
+  height = 5.5,
+  units = "in",
+  dpi = 300
+)
+
+```
+
+**Results paragraph for Figure 4.**  
+We predicted that warmer weeks would have higher foam counts and/or higher total insect abundance. This hypothesis was based on the idea that foam may help regulate spittlebug microhabitat conditions and that insect activity may increase under warmer conditions. The observed relationship between minimum temperature and foam count did not show strong support for this prediction. The Spearman correlation between minimum temperature and foam count was `r correlation_results$spearman_rho[correlation_results$hypothesis == "H3a"]`, with a p-value of `r correlation_results$p_value[correlation_results$hypothesis == "H3a"]`. The relationship between minimum temperature and total insect abundance was also not clearly strong, with a Spearman correlation of `r correlation_results$spearman_rho[correlation_results$hypothesis == "H3b"]` and a p-value of `r correlation_results$p_value[correlation_results$hypothesis == "H3b"]`. These results suggest that minimum temperature alone may not explain weekly changes in foam count or insect abundance. Other factors, such as plant condition, humidity, wind, observation time, insect life stage, or weekly differences in detection, may be more important. Because the study includes only six sampling weeks, these results should be treated as exploratory rather than conclusive.
+
+# More complex exploratory figure
+
+This figure is not required as one of the four main figures, but it helps show how the exploratory process developed beyond simple relationships. It shows whether total insect abundance was driven by changes in all taxa or by a few common groups.
+
+```{r complex-community-composition, fig.cap="Additional exploratory figure. Observed insect community composition over time from April 6 to May 11, 2026. Each stacked bar represents one sampling week, and colors represent insect taxa. This figure shows whether total insect abundance was driven by changes in all taxa or by a few common groups."}
+
+# create community composition figure
+fig_composition <- ggplot(
+  taxon_weekly,
+  aes(x = date, y = insect_count, fill = insect_taxon)
+) +
+  geom_col() +
+  scale_x_date(date_labels = "%b %d") +
+  coord_cartesian(ylim = c(0, NA)) +
+  labs(
+    x = "Sampling date",
+    y = "Insect count",
+    fill = "Insect taxon",
+    title = "Observed insect community composition over time",
+    subtitle = "Weekly totals were strongly influenced by a few common insect groups"
+  )
+
+fig_composition
+
+# save figure
+ggsave(
+  filename = here("figures", "additional_insect_composition.jpg"),
+  plot = fig_composition,
+  width = 8,
+  height = 5,
+  units = "in",
+  dpi = 300
+)
+
+```
+
+## Preliminary conclusion
+
+The initial exploratory figures helped show which relationships were most useful for the preliminary analysis. The simple over-time plots showed that foam count, insect abundance, richness, and temperature did not all follow the same weekly pattern. The initial relationship plots suggested that foam count was not strongly positively related to total insect abundance, but it may have a more positive relationship with insect taxon richness. The temperature plots suggested that minimum temperature alone may not explain weekly changes in foam count or total insect abundance. The more developed figures focus on these main patterns and connect them more directly to the project hypotheses. Overall, these preliminary analyses show mixed support for the hypotheses and should be refined as additional weeks of data are added.
